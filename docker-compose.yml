@@ -13,6 +13,8 @@ services:
     container_name: clickhouse-server
     environment:
       - CLICKHOUSE_DB=clickhouse
+      # - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1  # Enables default user without a password
+      - CLICKHOUSE_PASSWORD=weare@sala
     ports:
       - "8123:8123" # HTTP Interface
       - "8000:9000" # Native Interface
@@ -20,10 +22,10 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-config:/etc/clickhouse-server
       - ./apps/clickhouse/migrations:/migrations
-      - ./apps/clickhouse/custom_entrypoint.sh:/custom_entrypoint.sh  # Mount your migration script
-      - ./apps/clickhouse/applied_migrations.txt:/var/lib/clickhouse/applied_migrations.txt
-    entrypoint: /custom_entrypoint.sh  # Run migrations before starting ClickHouse
-    restart: always  # Ensure the container always restarts if it fails
+      - ./apps/clickhouse/custom_entrypoint.sh:/custom_entrypoint.sh # Mount your migration script
+      - ./apps/clickhouse/applied_migrations.txt:/var/lib/applied_migrations.txt
+    entrypoint: /custom_entrypoint.sh # Run migrations before starting ClickHouse
+    restart: always # Ensure the container always restarts if it fails
   airflow-webserver:
     image: apache/airflow:latest
     container_name: airflow-webserver
@@ -35,14 +37,14 @@ services:
       - AIRFLOW__WEBSERVER__WORKER_REFRESH_BATCH_SIZE=10
       - AIRFLOW__CORE__DEFAULT_TASK_LOG_READER=stream
       - AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX=True
-      # username/password is set later 
+      # username/password is set later
     volumes:
       - ./apps/airflow/dags:/opt/airflow/dags
       - ./apps/airflow/logs:/opt/airflow/logs
       - ./apps/airflow/.env:/opt/airflow/.env
     ports:
       - "8081:8080"
-      - "8793:8793"  # Log server
+      - "8793:8793" # Log server
     depends_on:
       - postgres
     command: ["bash", "-c", "airflow db init && airflow webserver"]
@@ -72,10 +74,10 @@ services:
     image: sala-metabase:latest
     container_name: metabase
     ports:
-      - "3050:3000"  # Metabase web UI
+      - "3050:3000" # Metabase web UI
     platform: linux/amd64
     volumes:
-      - metabase-data:/metabase-data  # Persist Metabase data
+      - metabase-data:/metabase-data # Persist Metabase data
     # environment:
     #   - MB_DB_TYPE=clickhouse
     #   - MB_DB_HOST=clickhouse-server
@@ -102,6 +104,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - '5432:5432'
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data

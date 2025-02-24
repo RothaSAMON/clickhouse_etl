@@ -1,4 +1,3 @@
--- Migration: Create a new student table in the clickhouse database
 CREATE TABLE IF NOT EXISTS clickhouse.applicant (
     applicantId UUID,
     userKey Nullable(String),
@@ -19,8 +18,7 @@ CREATE TABLE IF NOT EXISTS clickhouse.applicant (
     -- Foreign keys
     schoolId UUID,
     userId Nullable(UUID),
-    enrollToId UUID,
-
+    enrollToId UUID
 ) ENGINE = MergeTree()
 PARTITION BY schoolId               -- Partition by schoolId
 ORDER BY (schoolId, applicantId);   -- Primary key is schoolId and applicantId

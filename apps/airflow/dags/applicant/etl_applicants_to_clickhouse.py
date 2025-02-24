@@ -5,6 +5,7 @@ from pymongo import MongoClient
 import pandas as pd
 import requests
 import json
+import math
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -89,7 +90,7 @@ def load_applicants_to_clickhouse(**kwargs):
 
     # Clean timestamp fields in the data
     cleaned_data = clean_timestamps(data)
-    
+
     # Prepare the ClickHouse HTTP endpoint and query
     clickhouse_url = f'{os.getenv("CLICKHOUSE_HOST")}:{os.getenv("CLICKHOUSE_PORT")}'
 
@@ -99,33 +100,33 @@ def load_applicants_to_clickhouse(**kwargs):
         formatted_row = {}
         # Convert all fields that are objects (e.g., dict) to JSON strings
         for key, value in row.items():
-            if value is None:
-                formatted_row[key] = 'NULL'  # Replace None with SQL NULL
+            if value is None or (isinstance(value, float) and math.isnan(value)):
+                formatted_row[key] = 'Null'  # Use 'Null' for SQL NULL in ClickHouse
             elif isinstance(value, str):
-                # Wrap strings in single quotes for SQL insertion
-                formatted_row[key] = f"'{value}'"
+                # Wrap strings in single quotes for SQL insertion, ensuring no extra quotes
+                formatted_row[key] = f"'{value.replace("'", "''")}'"  # Escape single quotes in strings
             elif isinstance(value, dict):
-                # Serialize objects (dicts) as JSON strings
-                formatted_row[key] = f"'{json.dumps(value)}'"
+                # Serialize objects (dicts) as JSON strings and wrap in single quotes
+                formatted_row[key] = f"'{json.dumps(value).replace("'", "''")}'"  # Escape single quotes in JSON
             else:
                 # Leave other values (like numbers) as is
                 formatted_row[key] = value
-        # formatted_values = ", ".join(str(v) for v in formatted_row.values())
         formatted_rows.append(formatted_row)
-    # query = f"INSERT INTO my_clickhouse_table VALUES {','.join(rows)}"
+
     query = '''
         INSERT INTO clickhouse.applicant ("applicantId", "userKey", "idCard", "enrollToSubject",
         "enrollToDetail", "lastProfile", "applicantStatus", "source", "admissionFlow", "confirmTarget",
         "waitApplicantConfirm", "updatedAt", "createdAt", "toNotifyApplicant", "schoolId", "userId",
         "enrollToId") VALUES 
     '''
+    
     rows = ",".join([
-    f"""
-        ({row['applicantId']}, {row['userKey']}, {row['idCard']}, {row['enrollToSubject']}, {row['enrollToDetail']},
-        {row['lastProfile']}, {row['applicantStatus']}, {row['source']}, {row['admissionFlow']}, {row['confirmTarget']},
-        {row['waitApplicantConfirm']}, {row['updatedAt']}, {row['createdAt']}, {row['toNotifyApplicant']}, {row['schoolId']},
-        {row['userId']}, {row['enrollToId']})
-    """ for row in formatted_rows
+        f"""
+            ({row['applicantId']}, {row['userKey']}, {row['idCard']}, {row['enrollToSubject']}, {row['enrollToDetail']},
+            {row['lastProfile']}, {row['applicantStatus']}, {row['source']}, {row['admissionFlow']}, {row['confirmTarget']},
+            {row['waitApplicantConfirm']}, {row['updatedAt']}, {row['createdAt']}, {row['toNotifyApplicant']}, {row['schoolId']},
+            {row['userId']}, {row['enrollToId']})
+        """ for row in formatted_rows
     ])
     query += rows
 
@@ -138,7 +139,7 @@ def load_applicants_to_clickhouse(**kwargs):
         headers={'Content-Type': 'text/plain'},
         auth=(os.getenv("CLICKHOUSE_USER"), os.getenv("CLICKHOUSE_PASSWORD"))
     )
-    
+
     if response.status_code != 200:
         raise Exception(f"Failed to load data to ClickHouse: {response.text}")
 
