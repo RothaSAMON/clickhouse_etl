@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MIGRATIONS_DIR=/migrations
-APPLIED_MIGRATIONS_FILE=/var/lib/clickhouse/applied_migrations.txt
+APPLIED_MIGRATIONS_FILE=/var/lib/applied_migrations.txt
 
 # Start the original entrypoint script in the background
 echo "Starting ClickHouse server..."

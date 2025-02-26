@@ -116,6 +116,7 @@ def extract_campuses_from_postgres():
     cursor.close()
     connection.close()
     return df.to_dict('records')
+
 def load_campuses_to_clickhouse(**kwargs):
     """Load data into ClickHouse."""
     data = kwargs['ti'].xcom_pull(task_ids='extract_campuses_from_postgres')
@@ -211,6 +212,7 @@ def extract_structure_records_from_postgres():
     cursor.close()
     connection.close()
     return df.to_dict('records')
+
 def load_structure_records_to_clickhouse(**kwargs):
     """Load data into ClickHouse."""
     data = kwargs['ti'].xcom_pull(task_ids='extract_structure_records_from_postgres')
